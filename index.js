@@ -28,7 +28,7 @@ const CIVILIZATION_UNITS = {
   },
 };
 
-class Units {
+class Unit {
   constructor(strengthPoints) {
     this.strengthPoints = strengthPoints;
     this.lifeYears = 0;
@@ -37,15 +37,20 @@ class Units {
   getLifeYears() {
     return this.lifeYears;
   }
+
+  incrementAge() {
+    this.lifeYears++;
+  }
 }
 
-class Pikeman extends Units {
+class Pikeman extends Unit {
   constructor() {
     super(UNIT_STATS.pikeman.strength);
   }
 
   train() {
     this.strengthPoints += UNIT_STATS.pikeman.trainPoints;
+
     return {
       strength: this.strengthPoints,
       cost: UNIT_STATS.pikeman.trainCost,
@@ -58,7 +63,7 @@ class Pikeman extends Units {
   }
 }
 
-class Archer extends Units {
+class Archer extends Unit {
   constructor() {
     super(UNIT_STATS.archer.strength);
   }
@@ -77,7 +82,7 @@ class Archer extends Units {
   }
 }
 
-class Knight extends Units {
+class Knight extends Unit {
   constructor() {
     super(UNIT_STATS.knight.strength);
   }
@@ -102,6 +107,7 @@ class Army {
     this.gold = 1000;
     this.units = [];
     this.battleHistory = [];
+    this.armyAge = 0;
     this.initializeUnits();
   }
 
@@ -169,6 +175,29 @@ class Army {
     }
   }
 
+  transformFirstUnit(unitType) {
+    const unitIndex = this.units.findIndex(
+      (u) => u.constructor.name.toLowerCase() === unitType,
+    );
+    if (unitIndex !== -1) {
+      const unit = this.units[unitIndex];
+      const cost = UNIT_STATS[unitType.toLowerCase()].transformCost;
+
+      if (this.gold >= cost) {
+        if (unit instanceof Knight) {
+          console.log("The knight can't be transformed");
+          return;
+        }
+        this.gold -= cost;
+        this.units[unitIndex] = unit.transform();
+        console.log(`Unit transformed. Remaining gold: ${this.gold}`);
+      } else {
+        console.log("Not enough gold to transform");
+      }
+    } else {
+      console.log(`No units of ${unitType} were found.`);
+    }
+  }
   attack(enemyArmy) {
     console.log(
       `Battle: ${this.civilization} army vs ${enemyArmy.civilization} army`,
@@ -211,6 +240,56 @@ class Army {
             : BATTLE_STATUS.draw,
       opponent: this.civilization,
     });
+  }
+  getArmyAge() {
+    return this.armyAge;
+  }
+
+  getTotalLifeYears() {
+    return this.units.reduce((total, unit) => total + unit.getLifeYears(), 0);
+  }
+
+  getAverageUnitAge() {
+    if (this.units.length === 0) return 0;
+    return (this.getTotalLifeYears() / this.units.length).toFixed(2);
+  }
+
+  getUnitsAgeDetails() {
+    const ageDetails = {
+      pikemen: [],
+      archers: [],
+      knights: [],
+    };
+
+    this.units.forEach((unit) => {
+      const unitType = unit.constructor.name.toLowerCase();
+      const age = unit.getLifeYears();
+
+      if (unitType === "pikeman") {
+        ageDetails.pikemen.push(age);
+      } else if (unitType === "archer") {
+        ageDetails.archers.push(age);
+      } else if (unitType === "knight") {
+        ageDetails.knights.push(age);
+      }
+    });
+
+    return ageDetails;
+  }
+
+  displayArmyAgeInfo() {
+    console.log(
+      `\n------------ ${this.civilization.toUpperCase()} ARMY AGE INFO ------------`,
+    );
+    console.log(`Army Age: ${this.getArmyAge()} battles`);
+    console.log(`Total Unit Life Years: ${this.getTotalLifeYears()}`);
+    console.log(`Average Unit Age: ${this.getAverageUnitAge()} years`);
+
+    const ageDetails = this.getUnitsAgeDetails();
+    console.log(`Pikemen ages: [${ageDetails.pikemen.join(", ")}]`);
+    console.log(`Archers ages: [${ageDetails.archers.join(", ")}]`);
+    console.log(`Knights ages: [${ageDetails.knights.join(", ")}]`);
+    console.log("--------------------------------------------");
   }
 }
 
@@ -311,22 +390,22 @@ console.log(`Gold after transformations: ${armyEnglish.gold}`);
 // armyEnglish.transformFirstUnit("archer");
 // armyEnglish.transformFirstUnit("archer");
 
-console.log(`Gold after transformations: ${armyEnglish.gold}`);
+// console.log(`Gold after transformations: ${armyEnglish.gold}`);
 
-console.log("\n---------------\n");
-// Now try operations when out of gold
-console.log("\n=== Testing operations with insufficient gold ===");
-console.log("Attempting to train a knight (costs 30 gold):");
-armyEnglish.trainFirstUnit("knight");
+// console.log("\n---------------\n");
+// // Now try operations when out of gold
+// console.log("\n=== Testing operations with insufficient gold ===");
+// console.log("Attempting to train a knight (costs 30 gold):");
+// armyEnglish.trainFirstUnit("knight");
 
-console.log("Attempting to transform a pikeman (costs 30 gold):");
-armyEnglish.transformFirstUnit("pikeman");
+// console.log("Attempting to transform a pikeman (costs 30 gold):");
+// armyEnglish.transformFirstUnit("pikeman");
 
-console.log("Attempting to train an archer (costs 20 gold):");
-armyEnglish.trainFirstUnit("archer");
+// console.log("Attempting to train an archer (costs 20 gold):");
+// armyEnglish.trainFirstUnit("archer");
 
-console.log("Attempting to transform an archer (costs 40 gold):");
-armyEnglish.transformFirstUnit("archer");
+// console.log("Attempting to transform an archer (costs 40 gold):");
+// armyEnglish.transformFirstUnit("archer");
 
 console.log("---------------\n");
 
@@ -338,3 +417,10 @@ armyChinese.attack(armyEnglish);
 
 console.log("\nChinese Army Battle History:");
 console.log(armyChinese.battleHistory);
+
+// ----------------- GET LIFE YEARS ------------------------------
+console.log("\n-------- ARMY AGE INFORMATION --------");
+
+// Display initial age info
+armyChinese.displayArmyAgeInfo();
+armyEnglish.displayArmyAgeInfo();
